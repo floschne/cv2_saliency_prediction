@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import cv2
 import math
 
-batch_size = 8
+batch_size = 4
 
 
 def load_images_from_folder(folder):
@@ -18,17 +18,18 @@ def load_images_from_folder(folder):
     return np.asarray(images)
 
 
-train_images = load_images_from_folder('cv2_data/train/images')[:40]
-train_images_fixation = load_images_from_folder('cv2_data/train/fixations')[:40]
+train_images = load_images_from_folder('cv2_data/train/images')[:120]
+train_images_fixation = load_images_from_folder('cv2_data/train/fixations')[:120]
 
-val_images = load_images_from_folder('cv2_data/val/images')[:20]
-val_images_fixation = load_images_from_folder('cv2_data/val/fixations')[:20]
+val_images = load_images_from_folder('cv2_data/val/images')[:60]
+val_images_fixation = load_images_from_folder('cv2_data/val/fixations')[:60]
 
 test_images = load_images_from_folder('cv2_data/test/images')[:10]
 
 print(train_images.shape)
 print(train_images_fixation[0].shape)
-print(train_images_fixation[0].dtype)
+print(test_images.shape)
+print(train_images[50:60].shape)
 
 input_shape = train_images[0].shape
 print(input_shape)
@@ -94,17 +95,37 @@ model.add(keras.layers.Conv2D(64, kernel_size=(3, 3), padding='same', activation
 model.add(keras.layers.Cropping2D(cropping=(6, 0)))
 model.add(keras.layers.Conv2D(1, kernel_size=(1, 1), activation='sigmoid'))
 
-model.compile(loss=keras.losses.KLD,
+model.compile(loss=keras.losses.binary_crossentropy,
               optimizer=keras.optimizers.Adam(), metrics=['accuracy'])
 
 model.fit(train_images, train_images_fixation, batch_size=batch_size, epochs=1,
           verbose=1, validation_data=(val_images, val_images_fixation))
+# serialize model to JSON
+model_json = model.to_json()
+with open("model.json", "w") as json_file:
+    json_file.write(model_json)
+# serialize weights to HDF5
+model.save_weights("model.h5")
 
-model.save_weights('model.h5')
+#json_file = open('model.json', 'r')
+#loaded_model_json = json_file.read()
+#json_file.close()
+#loaded_model = keras.models.model_from_json(loaded_model_json)
+# load weights into new model
+#loaded_model.load_weights("model.h5")
+#print("Loaded model from disk")
+
 predictions = model.predict(test_images, batch_size=batch_size, verbose=1)
 
 print(predictions.shape)
-print(model.summary())
+#print(model.summary())
 
-plt.imshow(test_images[0])
+plt.imshow(train_images[50])
 plt.show()
+
+plt.imshow(predictions[0, :, :, 0], cmap='gray')
+plt.show()
+
+plt.imshow(train_images_fixation[50], cmap='gray')
+plt.show()
+
