@@ -3,7 +3,19 @@ import os
 
 import click
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+
+
+def load_images_from_folder(folder):
+    images = []
+    for filename in os.listdir(folder):
+        img = cv2.imread(os.path.join(folder, filename))
+        if img is not None:
+            images.append(img)
+    return np.asarray(images).astype('float32') / 255.0
 
 
 @click.command()
@@ -165,21 +177,6 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
 
     elif operation == "eval":
         raise NotImplemented("Not yet implemented!")
-
-
-import tensorflow as tf
-from matplotlib import pyplot as plt
-
-from tensorflow import keras
-
-
-def load_images_from_folder(folder):
-    images = []
-    for filename in os.listdir(folder):
-        img = cv2.imread(os.path.join(folder, filename))
-        if img is not None:
-            images.append(img)
-    return np.asarray(images).astype('float32') / 255.0
 
 
 if __name__ == '__main__':
