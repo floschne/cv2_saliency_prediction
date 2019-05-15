@@ -21,7 +21,7 @@ def load_images_from_folder(folder):
 @click.command()
 @click.option('--operation', '-o', type=click.Choice(['train', 'predict', 'eval']),
               help='The operation to perform')
-@click.option('--batch-size', '-bs', default=8, type=int, help='The batch size for training.', show_default=True)
+@click.option('--batch-size', '-bs', default=4, type=int, help='The batch size for training.', show_default=True)
 @click.option('--train-size', '-ts', default=None, type=int, help='The training set size. Default is all images.')
 @click.option('--epochs', '-e', default=1, help='The number of passes over the whole training set when training.',
               show_default=True)
@@ -40,18 +40,16 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
     # checkpoint_dir = os.path.dirname(checkpoint_path)
 
     if operation == "train":
-
         train_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/images'))
         train_images_fixation = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/fixations'))
         val_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'val/images'))
         val_images_fixation = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'val/fixations'))
 
-        print(train_images.shape)
-        print(train_images_fixation[0].shape)
-        print(train_images[50:60].shape)
+        print("train_images.shape: " + str(train_images.shape))
+        print("train_images_fixation[0].shape: " + str(train_images_fixation[0].shape))
 
         input_shape = train_images[0].shape
-        print(input_shape)
+        print("train_images[0].shape: " + str(train_images[0].shape))
 
         # Create checkpoint callback
         cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path,
