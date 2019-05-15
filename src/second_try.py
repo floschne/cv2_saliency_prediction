@@ -38,7 +38,6 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
     # checkpoint_path_old = "training_300_epochs/cp.ckpt"
     # checkpoint_path = "training_300_epochs/cp.ckpt"
     # checkpoint_dir = os.path.dirname(checkpoint_path)
-
     if operation == "train":
         train_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/images'))
         train_images_fixation = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/fixations'))
@@ -90,6 +89,8 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
 
+        model.load_weights(os.path.join(os.path.abspath(data_dir), 'vgg16_weights.h5'))
+
         # sixth layer 'reverse' conv_6 12 x 20
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
@@ -127,6 +128,8 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
         # TODO why this?
         # model.load_weights(checkpoint_path)
 
+        # model.load_weights(os.path.join(os.path.abspath(data_dir), 'vgg16_weights.h5'))
+
         model.fit(train_images, train_images_fixation,
                   batch_size=batch_size,
                   epochs=epochs,
@@ -137,13 +140,15 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
         print("Serializing model to %s" % os.path.abspath(model_dir))
         # serialize model to json
         model_json = model.to_json()
+        if not os.path.exists(os.path.dirname(model_dir)):
+            os.makedirs(os.path.dirname(model_dir))
         with open(os.path.join(os.path.abspath(model_dir), 'model.json'), "w") as json_file:
             json_file.write(model_json)
         # serialize weights to HDF5 TODO I guess this is now obsolete since we're using checkpoints
         # model.save_weights(os.path.join(os.path.abspath(model_dir), 'model.h5'))
 
     elif operation == "predict":
-        test_images = load_images_from_folder('cv2_data/test/images')
+        test_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'test/images'))
         print(test_images.shape)
 
         # deserialize model from json
