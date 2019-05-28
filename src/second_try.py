@@ -27,9 +27,11 @@ def load_images_from_folder(folder):
               show_default=True)
 @click.option('--data-dir', '-dd', default="./cv2_data/", type=str, help='Where to store or load the data.')
 @click.option('--model-dir', '-md', default="./model/", type=str, help='Where to store or load model data.')
+@click.option('--log-dir', '-ld', default="./logs/", type=str, help='Where to store the logs.')
+@click.option('--pred-dir', '-pd', default="./preds/", type=str, help='Where to store the predictions.')
 @click.option('--checkpoint-path', '-cpp', default="./model_checkpoints/cp.ckpt", type=str,
               help='Where to store or load checkpoints of the model.')
-def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpoint_path):
+def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir, pred_dir, checkpoint_path):
     # Verify that the there was at least one operation requested
     if not operation:
         print('No options given, try invoking the command with "--help" for help.')
@@ -55,7 +57,7 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
                                                          save_weights_only=True,
                                                          verbose=0)
         # Create Tensorboard callback
-        logdir = "./logs/scalars/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir = os.path.join(os.path.abspath(data_dir), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logdir)
 
         model = keras.models.Sequential()
@@ -174,7 +176,7 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, checkpo
             # axarr[1].imshow(train_images_fixation[idx])
             # axarr[2].imshow(predictions[idx, :, :, 0], cmap='gray')
 
-            plt.savefig('test_300epochs_predictions_{}.png'.format(idx))
+            plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_300epochs_predictions_{}.png'.format(idx)))
             plt.close()
             # plt.show()
 
