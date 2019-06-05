@@ -88,8 +88,6 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
 
-        model.load_weights(os.path.join(os.path.abspath(data_dir), 'vgg16_weights.h5'))
-
         # sixth layer 'reverse' conv_6 12 x 20
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
         model.add(keras.layers.Conv2D(512, kernel_size=(3, 3), padding='same', activation='relu'))
