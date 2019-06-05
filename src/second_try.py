@@ -124,11 +124,6 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         model.compile(loss=keras.losses.binary_crossentropy,
                       optimizer=keras.optimizers.SGD(lr=0.001))
 
-        # TODO why this?
-        # model.load_weights(checkpoint_path)
-
-        # model.load_weights(os.path.join(os.path.abspath(data_dir), 'vgg16_weights.h5'))
-
         model.fit(train_images, train_images_fixation,
                   batch_size=batch_size,
                   epochs=epochs,
