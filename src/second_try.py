@@ -36,10 +36,6 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
     if not operation:
         print('No options given, try invoking the command with "--help" for help.')
 
-    # TODO do we need all of this?!
-    # checkpoint_path_old = "training_300_epochs/cp.ckpt"
-    # checkpoint_path = "training_300_epochs/cp.ckpt"
-    # checkpoint_dir = os.path.dirname(checkpoint_path)
     if operation == "train":
         train_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/images'))
         train_images_fixation = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/fixations'))
@@ -54,10 +50,11 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
 
         # Create checkpoint callback
         cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path,
-                                                         save_weights_only=True,
+                                                         save_weights_only=False,
+                                                         epochs=50,
                                                          verbose=0)
         # Create Tensorboard callback
-        logdir = os.path.join(os.path.abspath(data_dir), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+        logdir = os.path.join(os.path.abspath(log_dirqq), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logdir)
 
         model = keras.models.Sequential()
