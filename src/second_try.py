@@ -51,7 +51,7 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         # Create checkpoint callback
         cp_callback = tf.keras.callbacks.ModelCheckpoint(os.path.join(os.path.abspath(checkpoint_path), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))),
                                                          save_weights_only=False,
-                                                         epochs=50,
+                                                         period=50,
                                                          verbose=0)
         # Create Tensorboard callback
         logdir = os.path.join(os.path.abspath(log_dir), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
