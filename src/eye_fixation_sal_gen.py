@@ -2,27 +2,19 @@ import datetime
 import os
 
 import click
-import cv2
 import matplotlib.pyplot as plt
-import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-# load traning data convert it to float and normalize the input to be between 0 and 1
-def load_images_from_folder(folder):
-    images = []
-    for filename in os.listdir(folder):
-        img = cv2.imread(os.path.join(folder, filename))
-        if img is not None:
-            images.append(img)
-    return np.asarray(images).astype('float32') / 255.0
+from util import KLD
+from util import load_images_from_folder
+from util import load_model
 
-# click commands 
+
 @click.command()
 @click.option('--operation', '-o', type=click.Choice(['train', 'predict', 'eval']),
               help='The operation to perform')
 @click.option('--batch-size', '-bs', default=4, type=int, help='The batch size for training.', show_default=True)
-@click.option('--train-size', '-ts', default=None, type=int, help='The training set size. Default is all images.')
 @click.option('--epochs', '-e', default=1, help='The number of passes over the whole training set when training.',
               show_default=True)
 @click.option('--data-dir', '-dd', default="./cv2_data/", type=str, help='Where to store or load the data.')
@@ -31,7 +23,7 @@ def load_images_from_folder(folder):
 @click.option('--pred-dir', '-pd', default="./preds/", type=str, help='Where to store the predictions.')
 @click.option('--checkpoint-path', '-cpp', default="./model_checkpoints/cp.ckpt", type=str,
               help='Where to store or load checkpoints of the model.')
-def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir, pred_dir, checkpoint_path):
+def main(operation, batch_size, epochs, data_dir, model_dir, log_dir, pred_dir, checkpoint_path):
     # Verify that the there was at least one operation requested
     if not operation:
         print('No options given, try invoking the command with "--help" for help.')
@@ -139,36 +131,26 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         model_json = model.to_json()
         if not os.path.exists(os.path.dirname(model_dir)):
             os.makedirs(os.path.dirname(model_dir))
+        f = open(os.path.join(os.path.abspath(model_dir), "model.json"), "w")
+        f.write(model_json)
+        f.close()
 
     elif operation == "predict":
         # load the test images
         test_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'test/images'))
         print(test_images.shape)
 
-        # deserialize model from json
-        json_file = open(os.path.join(os.path.abspath(model_dir), 'model.json'), 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
-        loaded_model = keras.models.model_from_json(loaded_model_json)
-        # load weights into deserialized model
-        loaded_model.load_weights(checkpoint_path)
-        print("Loaded model from %s" % os.path.abspath(model_dir))
+        loaded_model = load_model(checkpoint_path, model_dir)
 
-        #predicting the test data
+        # predicting the test data
         predictions = loaded_model.predict(test_images, batch_size=batch_size, verbose=1)
         print(predictions.shape)
 
         # output on predictions 
         for idx, val in enumerate(test_images):
-            # plt.imshow(predictions[idx, :, :, 0], cmap='gray')
             f, axarr = plt.subplots(2)
-            axarr[0].imshow(test_images[idx])
+            axarr[0].imshow(test_images[idx], cmap='gray')
             axarr[1].imshow(predictions[idx, :, :, 0], cmap='gray')
-
-            # # for testing the prediction by comparing with ground truth for train images
-            # axarr[0].imshow(train_images[idx])
-            # axarr[1].imshow(train_images_fixation[idx])
-            # axarr[2].imshow(predictions[idx, :, :, 0], cmap='gray')
 
             # saving output to file 
             plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_300epochs_predictions_{}.png'.format(idx)))
@@ -176,7 +158,25 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
             # plt.show()
 
     elif operation == "eval":
-        raise NotImplemented("Not yet implemented!")
+        # load model
+        loaded_model = load_model(checkpoint_path, model_dir)
+
+        # load the val images
+        val_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'val/images'))
+        # load the ground truth images
+        labels = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'val/fixations'))
+        # predict the fixations from val images
+        print("Predicting eye fixation maps...")
+        preds = loaded_model.predict(val_images, batch_size=batch_size, verbose=1)
+
+        assert len(labels) == len(preds), "Labels and predictions have to have the same number of elements!"
+
+        kld_avg = 0
+        for (p, g) in zip(preds, labels):
+            kld_avg += KLD(p[:, :, 0], g[:, :, 0])
+
+        kld_avg /= len(labels)
+        print('Average KLD for validation data set: {:f}'.format(kld_avg))
 
 
 if __name__ == '__main__':
