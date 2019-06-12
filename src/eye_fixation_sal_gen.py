@@ -2,7 +2,9 @@ import datetime
 import os
 
 import click
+import cv2
 import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
@@ -21,9 +23,12 @@ from util import load_model
 @click.option('--model-dir', '-md', default="./model/", type=str, help='Where to store or load model data.')
 @click.option('--log-dir', '-ld', default="./logs/", type=str, help='Where to store the logs.')
 @click.option('--pred-dir', '-pd', default="./preds/", type=str, help='Where to store the predictions.')
+@click.option('--generate-final-predictions', default=False, type=bool,
+              help='If true predictions for final evaluation are generated or else for visual human evaluation.')
 @click.option('--checkpoint-path', '-cpp', default="./model_checkpoints/cp.ckpt", type=str,
               help='Where to store or load checkpoints of the model.')
-def main(operation, batch_size, epochs, data_dir, model_dir, log_dir, pred_dir, checkpoint_path):
+def main(operation, batch_size, epochs, data_dir, model_dir, log_dir, pred_dir, generate_final_predictions,
+         checkpoint_path):
     # Verify that the there was at least one operation requested
     if not operation:
         print('No options given, try invoking the command with "--help" for help.')
@@ -43,12 +48,17 @@ def main(operation, batch_size, epochs, data_dir, model_dir, log_dir, pred_dir, 
         print("train_images[0].shape: " + str(train_images[0].shape))
 
         # Create checkpoint callback
+
+        if not os.path.exists(os.path.dirname(checkpoint_path)):
+            os.makedirs(os.path.dirname(checkpoint_path))
         cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path,
                                                          save_weights_only=False,
                                                          period=50,
                                                          verbose=0)
         # Create Tensorboard callback
         logdir = os.path.join(os.path.abspath(log_dir), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+        if not os.path.exists(logdir):
+            os.makedirs(os.path.dirname(logdir))
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logdir)
 
         # The generator Model as it is presented in the Salgan network 
@@ -138,24 +148,33 @@ def main(operation, batch_size, epochs, data_dir, model_dir, log_dir, pred_dir, 
     elif operation == "predict":
         # load the test images
         test_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'test/images'))
-        print(test_images.shape)
 
         loaded_model = load_model(checkpoint_path, model_dir)
 
         # predicting the test data
+        print("Predicting eye fixation maps...")
         predictions = loaded_model.predict(test_images, batch_size=batch_size, verbose=1)
-        print(predictions.shape)
 
-        # output on predictions 
-        for idx, val in enumerate(test_images):
-            f, axarr = plt.subplots(2)
-            axarr[0].imshow(test_images[idx], cmap='gray')
-            axarr[1].imshow(predictions[idx, :, :, 0], cmap='gray')
+        if not os.path.exists(pred_dir):
+            os.makedirs(pred_dir)
 
-            # saving output to file 
-            plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_300epochs_predictions_{}.png'.format(idx)))
-            plt.close()
-            # plt.show()
+        # output on predictions
+        print("Writing files...")
+        for idx, val in enumerate(predictions):
+            if not generate_final_predictions:
+                f, axarr = plt.subplots(2)
+                axarr[0].imshow(test_images[idx], cmap='gray')
+                axarr[1].imshow(predictions[idx, :, :, 0], cmap='gray')
+
+                # saving output to file
+                plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_predictions_{}.png'.format(1600 + idx)))
+                plt.close()
+            else:
+                img = predictions[idx]
+                img *= 255
+                img = img.astype(np.uint8)
+                img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+                cv2.imwrite(os.path.join(os.path.abspath(pred_dir), '{}.png'.format(1600 + idx)), img)
 
     elif operation == "eval":
         # load model
