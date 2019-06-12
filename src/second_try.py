@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-
+# load traning data convert it to float and normalize the input to be between 0 and 1
 def load_images_from_folder(folder):
     images = []
     for filename in os.listdir(folder):
@@ -17,7 +17,7 @@ def load_images_from_folder(folder):
             images.append(img)
     return np.asarray(images).astype('float32') / 255.0
 
-
+# click commands 
 @click.command()
 @click.option('--operation', '-o', type=click.Choice(['train', 'predict', 'eval']),
               help='The operation to perform')
@@ -36,7 +36,9 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
     if not operation:
         print('No options given, try invoking the command with "--help" for help.')
 
+    # traning the model
     if operation == "train":
+        # loading the traning data
         train_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/images'))
         train_images_fixation = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'train/fixations'))
         val_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'val/images'))
@@ -57,8 +59,9 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         logdir = os.path.join(os.path.abspath(log_dir), str(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logdir)
 
+        # The generator Model as it is presented in the Salgan network 
         model = keras.models.Sequential()
-        # first layer conv_1 180 x 320 #-> 192 x 320
+        # first layer conv_1 180 x 320 #-> 192 x 320, zero padding is needed to achieve max pooling depth
         model.add(keras.layers.ZeroPadding2D(padding=(6, 0)))
         model.add(keras.layers.Conv2D(64, kernel_size=(3, 3), padding='same', activation='relu',
                                       data_format='channels_last',
@@ -119,9 +122,11 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         model.add(keras.layers.Cropping2D(cropping=(6, 0)))
         model.add(keras.layers.Conv2D(1, kernel_size=(1, 1), activation='sigmoid'))
 
+        # compiing the model
         model.compile(loss=keras.losses.binary_crossentropy,
                       optimizer=keras.optimizers.SGD(lr=0.001))
 
+        # train the model on the click parameters that were specified
         model.fit(train_images, train_images_fixation,
                   batch_size=batch_size,
                   epochs=epochs,
@@ -134,12 +139,9 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         model_json = model.to_json()
         if not os.path.exists(os.path.dirname(model_dir)):
             os.makedirs(os.path.dirname(model_dir))
-        with open(os.path.join(os.path.abspath(model_dir), 'model.json'), "w") as json_file:
-            json_file.write(model_json)
-        # serialize weights to HDF5 TODO I guess this is now obsolete since we're using checkpoints
-        # model.save_weights(os.path.join(os.path.abspath(model_dir), 'model.h5'))
 
     elif operation == "predict":
+        # load the test images
         test_images = load_images_from_folder(os.path.join(os.path.abspath(data_dir), 'test/images'))
         print(test_images.shape)
 
@@ -149,23 +151,26 @@ def main(operation, batch_size, train_size, epochs, data_dir, model_dir, log_dir
         json_file.close()
         loaded_model = keras.models.model_from_json(loaded_model_json)
         # load weights into deserialized model
-        # loaded_model.load_weights(os.path.join(os.path.abspath(model_dir), 'model.h5'))
         loaded_model.load_weights(checkpoint_path)
         print("Loaded model from %s" % os.path.abspath(model_dir))
 
+        #predicting the test data
         predictions = loaded_model.predict(test_images, batch_size=batch_size, verbose=1)
         print(predictions.shape)
 
+        # output on predictions 
         for idx, val in enumerate(test_images):
             # plt.imshow(predictions[idx, :, :, 0], cmap='gray')
             f, axarr = plt.subplots(2)
             axarr[0].imshow(test_images[idx])
             axarr[1].imshow(predictions[idx, :, :, 0], cmap='gray')
 
+            # # for testing the prediction by comparing with ground truth for train images
             # axarr[0].imshow(train_images[idx])
             # axarr[1].imshow(train_images_fixation[idx])
             # axarr[2].imshow(predictions[idx, :, :, 0], cmap='gray')
 
+            # saving output to file 
             plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_300epochs_predictions_{}.png'.format(idx)))
             plt.close()
             # plt.show()
