@@ -167,14 +167,14 @@ def main(operation, batch_size, epochs, data_dir, model_dir, log_dir, pred_dir, 
                 axarr[1].imshow(predictions[idx, :, :, 0], cmap='gray')
 
                 # saving output to file
-                plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_predictions_{}.png'.format(1600 + idx)))
+                plt.savefig(os.path.join(os.path.abspath(pred_dir), 'test_predictions_{}.png'.format(1600 + idx + 1)))
                 plt.close()
             else:
                 img = predictions[idx]
                 img *= 255
                 img = img.astype(np.uint8)
                 img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-                cv2.imwrite(os.path.join(os.path.abspath(pred_dir), '{}.png'.format(1600 + idx)), img)
+                cv2.imwrite(os.path.join(os.path.abspath(pred_dir), '{}_prediction.jpg'.format(1600 + idx + 1)), img)
 
     elif operation == "eval":
         # load model
